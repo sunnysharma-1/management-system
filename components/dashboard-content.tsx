@@ -5,7 +5,11 @@ import React from "react"
 import { useState } from 'react';
 import { Activity, Users, FileText, TrendingUp, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
-export function DashboardContent() {
+interface DashboardContentProps {
+  onNavigate: (id: string) => void;
+}
+
+export function DashboardContent({ onNavigate }: DashboardContentProps) {
   return (
     <div className="flex-1 overflow-auto">
       {/* Top Header */}
@@ -94,26 +98,31 @@ export function DashboardContent() {
                   label="Create New Employee"
                   icon="👤"
                   color="primary"
+                  onClick={() => onNavigate('new-employee')}
                 />
                 <QuickActionButton
                   label="Process Payroll"
                   icon="💰"
                   color="primary"
+                  onClick={() => onNavigate('salary-process')}
                 />
                 <QuickActionButton
                   label="Generate Invoice"
                   icon="📄"
                   color="primary"
+                  onClick={() => onNavigate('generate-invoice')}
                 />
                 <QuickActionButton
                   label="View Reports"
                   icon="📊"
                   color="primary"
+                  onClick={() => onNavigate('report-employee')}
                 />
                 <QuickActionButton
                   label="Manage Attendance"
                   icon="✓"
                   color="accent"
+                  onClick={() => onNavigate('monthly-attendance')}
                 />
               </div>
             </div>
@@ -188,7 +197,7 @@ function ActivityItem({ icon, title, description, time }: ActivityItemProps) {
   );
 }
 
-function QuickActionButton({ label, icon, color }: { label: string; icon: string; color: string }) {
+function QuickActionButton({ label, icon, color, onClick }: { label: string; icon: string; color: string; onClick?: () => void }) {
   const colorClasses = {
     primary: 'bg-gradient-to-r from-primary to-primary/70 hover:from-primary/90 hover:to-primary/60 text-white shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/50',
     accent: 'bg-gradient-to-r from-accent to-accent/70 hover:from-accent/90 hover:to-accent/60 text-background shadow-lg shadow-accent/30 hover:shadow-xl hover:shadow-accent/50',
@@ -196,6 +205,7 @@ function QuickActionButton({ label, icon, color }: { label: string; icon: string
 
   return (
     <button
+      onClick={onClick}
       className={`w-full ${colorClasses[color as keyof typeof colorClasses]} px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 animate-fade-in border border-white/20 hover:border-white/40 backdrop-blur-sm hover:scale-105 transform`}
     >
       <span>{icon}</span>

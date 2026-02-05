@@ -19,7 +19,7 @@ export default function Home() {
 
   const renderContent = () => {
     if (activeItem === 'dashboard') {
-      return <DashboardContent />;
+      return <DashboardContent onNavigate={setActiveItem} />;
     }
     return <ModuleContent activeItem={activeItem} />;
   };
