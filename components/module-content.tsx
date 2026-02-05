@@ -12,6 +12,7 @@ import { FinancialYearManager } from './financial-year';
 import { GenericMaster } from './generic-master';
 import { ClientManager } from './client-manager';
 import { InvoiceGenerator } from './invoice-generator';
+import { AttendanceModule } from './attendance-module';
 
 
 
@@ -56,6 +57,10 @@ export function ModuleContent({ activeItem }: ModuleContentProps) {
 
   if (activeItem === 'create-salary' || activeItem === 'salary-process') {
     return <PayrollSection />;
+  }
+
+  if (activeItem === 'monthly-attendance') {
+    return <AttendanceModule />;
   }
 
   if (activeItem === 'generate-invoice' || activeItem === 'recent-entry') {

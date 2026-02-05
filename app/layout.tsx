@@ -16,11 +16,11 @@ export const metadata: Metadata = {
     description: 'Complete HRM solution for enterprise resource planning',
   }
 }
-
 import { AuthProvider } from '@/components/providers/auth-context'
 import { MasterDataProvider } from '@/components/providers/master-data-context'
 import { BillingProvider } from '@/components/providers/billing-context'
 import { EmployeeProvider } from '@/components/providers/employee-context'
+import { AttendanceProvider } from '@/components/providers/attendance-context'
 
 export default function RootLayout({
   children,
@@ -33,9 +33,11 @@ export default function RootLayout({
         <MasterDataProvider>
           <BillingProvider>
             <EmployeeProvider>
-              <AuthProvider>
-                {children}
-              </AuthProvider>
+              <AttendanceProvider>
+                <AuthProvider>
+                  {children}
+                </AuthProvider>
+              </AttendanceProvider>
             </EmployeeProvider>
           </BillingProvider>
         </MasterDataProvider>
