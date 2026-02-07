@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, User, MapPin, Phone, Briefcase, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,11 +11,30 @@ export default function EmployeeSearchPage() {
     const router = useRouter();
     const [query, setQuery] = useState('');
 
-    const results = query ? mockEmployees.filter(emp =>
-        emp.name.toLowerCase().includes(query.toLowerCase()) ||
-        emp.code.toLowerCase().includes(query.toLowerCase()) ||
-        emp.phone.includes(query)
-    ) : [];
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchResults = async () => {
+            if (!query) {
+                setResults([]);
+                return;
+            }
+            setLoading(true);
+            try {
+                const data = await import('@/lib/api').then(m => m.api.getEmployees({ query }));
+                setResults(data);
+            } catch (error) {
+                console.error("Search failed", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const timer = setTimeout(fetchResults, 400);
+        return () => clearTimeout(timer);
+    }, [query]);
 
     return (
         <AuroraBackground className="flex flex-col">
@@ -57,30 +76,30 @@ export default function EmployeeSearchPage() {
                         <AnimatePresence>
                             {query && results.map((emp, idx) => (
                                 <motion.div
-                                    key={emp.code}
+                                    key={emp._id || emp.employeeId}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, height: 0 }}
                                     transition={{ delay: idx * 0.05 }}
-                                    onClick={() => router.push(`/employees/new?code=${emp.code}`)}
+                                    onClick={() => router.push(`/employees/new?code=${emp.employeeId}`)}
                                     className="bg-card/40 backdrop-blur border border-white/5 hover:border-primary/50 rounded-2xl p-4 cursor-pointer group transition-all hover:bg-card/60"
                                 >
                                     <div className="flex items-center gap-6">
                                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center text-xl font-bold text-zinc-400 group-hover:from-primary/20 group-hover:to-blue-600/20 group-hover:text-primary transition-all">
-                                            {emp.avatar}
+                                            {emp.firstName ? emp.firstName.charAt(0) : 'E'}
                                         </div>
 
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-1">
-                                                <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors">{emp.name}</h3>
+                                                <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors">{emp.firstName} {emp.lastName}</h3>
                                                 <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-xs font-mono text-muted-foreground">
-                                                    {emp.code}
+                                                    {emp.employeeId}
                                                 </span>
                                             </div>
 
                                             <div className="flex items-center gap-6 text-sm text-muted-foreground">
                                                 <div className="flex items-center gap-1.5">
-                                                    <Briefcase className="w-4 h-4" /> {emp.dept} • {emp.role}
+                                                    <Briefcase className="w-4 h-4" /> {emp.department} • {emp.designation}
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
                                                     <Phone className="w-4 h-4" /> {emp.phone}
