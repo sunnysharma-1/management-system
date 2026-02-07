@@ -38,7 +38,7 @@ export function EmployeeLeftModal({ isOpen, onClose, employee, onConfirm }: Empl
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onConfirm({ ...formData, employeeId: employee.code });
+        onConfirm({ ...formData, employeeId: employee.employeeId });
         onClose();
     };
 
@@ -64,7 +64,7 @@ export function EmployeeLeftModal({ isOpen, onClose, employee, onConfirm }: Empl
                             <h2 className="text-xl font-bold flex items-center gap-2 text-red-500">
                                 <UserMinusIcon className="w-5 h-5" /> Employee Left Details
                             </h2>
-                            <p className="text-sm text-muted-foreground">Process exit for {employee.name} ({employee.code})</p>
+                            <p className="text-sm text-muted-foreground">Process exit for {employee.firstName} {employee.lastName} ({employee.employeeId})</p>
                         </div>
                         <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                             <X className="w-5 h-5" />
@@ -79,23 +79,23 @@ export function EmployeeLeftModal({ isOpen, onClose, employee, onConfirm }: Empl
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-4 bg-slate-800/50 rounded-xl border border-white/5">
                                 <div>
                                     <label className="text-xs text-muted-foreground uppercase font-bold">Name</label>
-                                    <p className="font-medium text-white">{employee.name}</p>
+                                    <p className="font-medium text-white">{employee.firstName} {employee.lastName}</p>
                                 </div>
                                 <div>
                                     <label className="text-xs text-muted-foreground uppercase font-bold">Code</label>
-                                    <p className="font-mono text-primary">{employee.code}</p>
+                                    <p className="font-mono text-primary">{employee.employeeId}</p>
                                 </div>
                                 <div>
                                     <label className="text-xs text-muted-foreground uppercase font-bold">Department</label>
-                                    <p className="font-medium text-white">{employee.dept}</p>
+                                    <p className="font-medium text-white">{employee.department}</p>
                                 </div>
                                 <div>
                                     <label className="text-xs text-muted-foreground uppercase font-bold">Designation</label>
-                                    <p className="font-medium text-white">{employee.role}</p>
+                                    <p className="font-medium text-white">{employee.designation}</p>
                                 </div>
                                 <div>
                                     <label className="text-xs text-muted-foreground uppercase font-bold">Joining Date</label>
-                                    <p className="font-medium text-white">{employee.joinDate}</p>
+                                    <p className="font-medium text-white">{employee.joiningDate ? new Date(employee.joiningDate).toLocaleDateString() : 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label className="text-xs text-muted-foreground uppercase font-bold">Mobile</label>

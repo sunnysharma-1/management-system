@@ -30,7 +30,7 @@ export function EmployeeRejoinModal({ isOpen, onClose, employee, onConfirm }: Em
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onConfirm({ ...formData, employeeId: employee.code });
+        onConfirm({ ...formData, employeeId: employee.employeeId });
         onClose();
     };
 
@@ -56,7 +56,7 @@ export function EmployeeRejoinModal({ isOpen, onClose, employee, onConfirm }: Em
                             <h2 className="text-xl font-bold flex items-center gap-2 text-green-400">
                                 <UserPlus className="w-5 h-5" /> Employee Rejoin
                             </h2>
-                            <p className="text-sm text-muted-foreground">Re-activate {employee.name}'s profile</p>
+                            <p className="text-sm text-muted-foreground">Re-activate {employee.firstName} {employee.lastName}'s profile</p>
                         </div>
                         <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                             <X className="w-5 h-5" />
@@ -70,11 +70,11 @@ export function EmployeeRejoinModal({ isOpen, onClose, employee, onConfirm }: Em
                             {/* Static Info Summary */}
                             <div className="flex items-center gap-4 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
                                 <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 font-bold text-lg">
-                                    {employee.avatar}
+                                    {employee.firstName ? employee.firstName.charAt(0) : 'E'}
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-white">{employee.name}</h3>
-                                    <p className="text-sm text-green-200/70">{employee.code} • Left on {employee.exitDate || 'N/A'}</p>
+                                    <h3 className="font-bold text-white">{employee.firstName} {employee.lastName}</h3>
+                                    <p className="text-sm text-green-200/70">{employee.employeeId} • Left on {employee.exitDetails?.exitDate || 'N/A'}</p>
                                 </div>
                             </div>
 
