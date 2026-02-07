@@ -15,7 +15,7 @@ export function BentoDashboard({ onNavigate }: BentoDashboardProps) {
     const activeCount = employees.filter(e => e.status === 'Active').length;
 
     return (
-        <div className="flex-1 p-8 overflow-auto animate-fade-in pl-24"> {/* Extra padding-left for dock */}
+        <div className="flex-1 px-8 pb-8 pt-8 overflow-auto animate-fade-in"> {/* pt-8 added relative to main container padding */}
 
             {/* Header Section */}
             <div className="mb-8 flex justify-between items-end">

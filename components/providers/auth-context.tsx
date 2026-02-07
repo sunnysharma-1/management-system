@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 
 export interface Permission {
   id: string; // navigation ID
@@ -27,7 +28,7 @@ interface AuthContextType {
   role: Role | null;
   allUsers: User[];
   allRoles: Role[];
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   createRole: (role: Role) => void;
   updateRole: (role: Role) => void;
@@ -42,30 +43,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const MASTER_ROLE_ID = 'master-role';
 const ADMIN_USER_ID = 'admin-user';
 
-const INITIAL_ROLES: Role[] = [
-  {
-    id: MASTER_ROLE_ID,
-    name: 'Master Admin',
-    permissions: ['ALL'], // Special keyword for full access
-    isSystem: true,
-  },
-  {
-    id: 'employee-role',
-    name: 'Employee',
-    permissions: ['dashboard', 'employee', 'mis'],
-    isSystem: false,
-  }
-];
-
-const INITIAL_USERS: User[] = [
-  {
-    id: ADMIN_USER_ID,
-    username: 'admin',
-    name: 'System Master',
-    password: 'admin', // Demo password
-    roleId: MASTER_ROLE_ID,
-  }
-];
+// Initial constants removed for API integration
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -83,15 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (storedRoles) {
       setAllRoles(JSON.parse(storedRoles));
     } else {
-      setAllRoles(INITIAL_ROLES);
-      localStorage.setItem('hrm_roles', JSON.stringify(INITIAL_ROLES));
+      setAllRoles([]);
+      localStorage.setItem('hrm_roles', JSON.stringify([]));
     }
 
     if (storedUsers) {
       setAllUsers(JSON.parse(storedUsers));
     } else {
-      setAllUsers(INITIAL_USERS);
-      localStorage.setItem('hrm_users', JSON.stringify(INITIAL_USERS));
+      setAllUsers([]);
+      localStorage.setItem('hrm_users', JSON.stringify([]));
     }
 
     if (storedSession) {
@@ -99,22 +77,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(sessionUser);
       // Find role for session user
       // We need to wait for roles to be set, but in this synchronous block we might need to look at storedRoles or INITIAL_ROLES
-      const currentRoles = storedRoles ? JSON.parse(storedRoles) : INITIAL_ROLES;
+      const currentRoles = storedRoles ? JSON.parse(storedRoles) : [];
       const userRole = currentRoles.find((r: Role) => r.id === sessionUser.roleId);
       setRole(userRole || null);
     }
   }, []);
 
-  const login = (username: string, password: string) => {
-    const foundUser = allUsers.find(u => u.username === username && u.password === password);
-    if (foundUser) {
-      setUser(foundUser);
-      const userRole = allRoles.find(r => r.id === foundUser.roleId);
-      setRole(userRole || null);
-      localStorage.setItem('hrm_session_user', JSON.stringify(foundUser));
+  const login = async (username: string, password: string) => {
+    try {
+      // API Integration
+      // const res = await api.post('/auth/login', { username, password });
+      // const { user, token } = res.data;
+
+      // Temporary: Fail until backend is ready or allow bypassing for UI testing if needed
+      // For now, we removed the hardcoded user, so login will fail unless connected to real API
+      console.log("Attempting login via API...");
+      return false;
+
+      /* 
+      setUser(user);
+      localStorage.setItem('token', token);
+      localStorage.setItem('hrm_session_user', JSON.stringify(user));
       return true;
+      */
+    } catch (error) {
+      console.error("Login failed", error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
@@ -122,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
     localStorage.removeItem('hrm_session_user');
     // Force reload to clear any state
-    window.location.reload(); 
+    window.location.reload();
   };
 
   const createRole = (newRole: Role) => {
@@ -135,17 +124,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const updatedRoles = allRoles.map(r => r.id === updatedRole.id ? updatedRole : r);
     setAllRoles(updatedRoles);
     localStorage.setItem('hrm_roles', JSON.stringify(updatedRoles));
-    
+
     // Update current role if it was modified
     if (role?.id === updatedRole.id) {
-        setRole(updatedRole);
+      setRole(updatedRole);
     }
   };
-  
+
   const deleteRole = (roleId: string) => {
-      const updatedRoles = allRoles.filter(r => r.id !== roleId);
-      setAllRoles(updatedRoles);
-      localStorage.setItem('hrm_roles', JSON.stringify(updatedRoles));
+    const updatedRoles = allRoles.filter(r => r.id !== roleId);
+    setAllRoles(updatedRoles);
+    localStorage.setItem('hrm_roles', JSON.stringify(updatedRoles));
   }
 
   const createUser = (newUser: User) => {
@@ -158,39 +147,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const updatedUsers = allUsers.map(u => u.id === updatedUser.id ? updatedUser : u);
     setAllUsers(updatedUsers);
     localStorage.setItem('hrm_users', JSON.stringify(updatedUsers));
-    
+
     // Update current user if it was modified
     if (user?.id === updatedUser.id) {
-        setUser(updatedUser);
-        localStorage.setItem('hrm_session_user', JSON.stringify(updatedUser));
-        
-        // Also update role reference if changed
-        const newRole = allRoles.find(r => r.id === updatedUser.roleId);
-        setRole(newRole || null);
+      setUser(updatedUser);
+      localStorage.setItem('hrm_session_user', JSON.stringify(updatedUser));
+
+      // Also update role reference if changed
+      const newRole = allRoles.find(r => r.id === updatedUser.roleId);
+      setRole(newRole || null);
     }
   };
-  
+
   const deleteUser = (userId: string) => {
-      const updatedUsers = allUsers.filter(u => u.id !== userId);
-      setAllUsers(updatedUsers);
-      localStorage.setItem('hrm_users', JSON.stringify(updatedUsers));
+    const updatedUsers = allUsers.filter(u => u.id !== userId);
+    setAllUsers(updatedUsers);
+    localStorage.setItem('hrm_users', JSON.stringify(updatedUsers));
   }
 
 
   return (
-    <AuthContext.Provider value={{ 
-        user, 
-        role, 
-        allUsers, 
-        allRoles, 
-        login, 
-        logout,
-        createRole,
-        updateRole,
-        deleteRole,
-        createUser,
-        updateUser,
-        deleteUser
+    <AuthContext.Provider value={{
+      user,
+      role,
+      allUsers,
+      allRoles,
+      login,
+      logout,
+      createRole,
+      updateRole,
+      deleteRole,
+      createUser,
+      updateUser,
+      deleteUser
     }}>
       {children}
     </AuthContext.Provider>

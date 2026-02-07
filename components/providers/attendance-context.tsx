@@ -33,12 +33,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         if (stored) {
             setRecords(JSON.parse(stored));
         } else {
-            // Seed some dummy data for demo
-            const today = new Date().toISOString().split('T')[0];
-            setRecords([
-                { id: '1', employeeId: 'emp-1', date: today, status: 'Present', checkIn: '09:00' },
-                { id: '2', employeeId: 'emp-2', date: today, status: 'Present', checkIn: '09:15' }
-            ]);
+            setRecords([]);
         }
     }, []);
 

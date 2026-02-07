@@ -46,18 +46,7 @@ interface EmployeeContextType {
 
 const EmployeeContext = createContext<EmployeeContextType | undefined>(undefined);
 
-const INITIAL_EMPLOYEES: Employee[] = [
-    {
-        id: 'emp-1', firstName: 'John', lastName: 'Doe', email: 'john@axis.com', phone: '9876543210',
-        department: 'Security', designation: 'Head Guard', joiningDate: '2023-01-01',
-        salary: 25000, bankAccount: '1234567890', address: 'Mumbai', status: 'Active'
-    },
-    {
-        id: 'emp-2', firstName: 'Jane', lastName: 'Smith', email: 'jane@axis.com', phone: '9876543211',
-        department: 'Admin', designation: 'Manager', joiningDate: '2023-03-15',
-        salary: 45000, bankAccount: '0987654321', address: 'Pune', status: 'Active'
-    }
-];
+const INITIAL_EMPLOYEES: Employee[] = []; // Removed demo data
 
 export function EmployeeProvider({ children }: { children: ReactNode }) {
     const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);

@@ -1,6 +1,7 @@
 'use client';
 
 import { Search, Download, Plus, Filter } from 'lucide-react';
+import EmployeesPage from '@/app/employees/page';
 import { EmployeeForm } from './employee-form';
 import { PayrollSection } from './payroll-section';
 import { BillingSection } from './billing-section';
@@ -21,6 +22,7 @@ interface ModuleContentProps {
 }
 
 export function ModuleContent({ activeItem }: ModuleContentProps) {
+  if (activeItem === 'employees') return <EmployeesPage />;
   // --- Billing Modules ---
   if (activeItem === 'client-master') return <ClientManager />;
   if (activeItem === 'generate-invoice') return <InvoiceGenerator />;
