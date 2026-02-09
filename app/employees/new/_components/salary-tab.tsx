@@ -1,7 +1,10 @@
 'use client';
 
-import { IndianRupee, Calculator, RefreshCw, Plus, Minus } from 'lucide-react';
-import { useEffect } from 'react';
+import { IndianRupee, Calculator, RefreshCw, Plus, Minus, Search, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface SalaryTabProps {
     formData: any;
@@ -10,6 +13,107 @@ interface SalaryTabProps {
 
 export function SalaryTab({ formData, setFormData }: SalaryTabProps) {
     const s = formData.salaryDetails || {};
+    const [clients, setClients] = useState<any[]>([]);
+    const [units, setUnits] = useState<any[]>([]);
+    const [rates, setRates] = useState<any[]>([]);
+    const [selectedUnitId, setSelectedUnitId] = useState('');
+    const [isRateModalOpen, setIsRateModalOpen] = useState(false);
+
+    useEffect(() => {
+        fetchClients();
+    }, []);
+
+    const fetchClients = async () => {
+        try {
+            const res = await api.getClients();
+            setClients(res);
+
+            // Flatten units for easy selection
+            const flattenedUnits = res.flatMap((client: any) =>
+                (client.units || []).map((unit: any) => ({
+                    ...unit,
+                    clientName: client.companyName,
+                    clientId: client._id
+                }))
+            );
+            setUnits(flattenedUnits);
+        } catch (error) {
+            console.error("Failed to fetch clients");
+        }
+    };
+
+    const handleUnitSelect = async (unitId: string) => {
+        setSelectedUnitId(unitId);
+        const unit = units.find(u => u._id === unitId);
+
+        if (unit) {
+            try {
+                // Fetch all rates for this client
+                const allRates = await api.getRates({ clientId: unit.clientId });
+
+                // Filter: Generic OR Specific to this unit
+                const relevantRates = allRates.filter((r: any) =>
+                    !r.unitId || r.unitId === unitId
+                );
+
+                setRates(relevantRates);
+            } catch (error) {
+                console.error("Failed to fetch rates");
+            }
+        } else {
+            setRates([]);
+        }
+    };
+
+    const applyRate = (rate: any) => {
+        const comp = rate.salaryComponents || {};
+        const ded = rate.deductions || {};
+
+        const newDetails = {
+            ...s,
+            basic: comp.basic || 0,
+            da: comp.da || 0,
+            hra: comp.hra || 0,
+            conveyance: comp.conveyance || 0,
+            washing: comp.washing || 0,
+            uniform: comp.uniform || 0,
+            special: comp.special || 0,
+            training: comp.training || 0,
+            roomRent: comp.roomRent || 0,
+            medical: comp.medical || 0,
+            leave: comp.leave || 0,
+            bonus: comp.bonus || 0,
+            gratuity: comp.gratuity || 0,
+            nh: comp.nh || 0,
+            relievingCharge: comp.relievingCharge || 0,
+
+            // Deductions Config
+            pfPercent: ded.pfPercent || 0,
+            esicPercent: ded.esicPercent || 0,
+            otherDeduction: ded.lwf || 0
+        };
+
+        // Recalculate totals immediately
+        const totalEarnings = Object.values(comp).reduce((a: number, b: any) => a + Number(b), 0);
+
+        // Quick Calc for PF/ESIC if percentages exist
+        let pfAmt = 0;
+        let esicAmt = 0;
+
+        if (ded.pfPercent > 0) pfAmt = Math.round((comp.basic * ded.pfPercent) / 100);
+        if (ded.esicPercent > 0) esicAmt = Math.round((totalEarnings * ded.esicPercent) / 100);
+
+        newDetails.pfAmount = pfAmt;
+        newDetails.esicAmount = esicAmt;
+
+        setFormData({
+            ...formData,
+            salaryDetails: newDetails,
+            grossSalary: totalEarnings
+        });
+
+        setIsRateModalOpen(false);
+    };
 
     const handleChange = (field: string, value: number) => {
         const newDetails = { ...s, [field]: value };
@@ -19,7 +123,7 @@ export function SalaryTab({ formData, setFormData }: SalaryTabProps) {
             (newDetails.conveyance || 0) + (newDetails.washing || 0) + (newDetails.uniform || 0) +
             (newDetails.special || 0) + (newDetails.training || 0) + (newDetails.roomRent || 0) +
             (newDetails.medical || 0) + (newDetails.leave || 0) + (newDetails.bonus || 0) +
-            (newDetails.gratuity || 0);
+            (newDetails.gratuity || 0) + (newDetails.nh || 0) + (newDetails.relievingCharge || 0);
 
         const totalDeductions = (newDetails.pfAmount || 0) + (newDetails.esicAmount || 0) +
             (newDetails.tds || 0) + (newDetails.deathBenefit || 0) + (newDetails.otherDeduction || 0);
@@ -29,32 +133,26 @@ export function SalaryTab({ formData, setFormData }: SalaryTabProps) {
         setFormData({
             ...formData,
             salaryDetails: newDetails,
-            grossSalary: totalEarnings // Assuming Gross is Total Earnings for now
+            grossSalary: totalEarnings
         });
     };
 
     // Helper for Percentage Calculation
     const calculatePercentage = (field: 'pf' | 'esic', percent: number) => {
         const basic = s.basic || 0;
-        const amount = Math.round((basic * percent) / 100);
+        const gross = formData.grossSalary || 0;
+
+        // PF usually on Basic, ESIC on Gross
+        const base = field === 'pf' ? basic : gross;
+        const amount = Math.round((base * percent) / 100);
 
         const newDetails = {
             ...s,
             [`${field}Percent`]: percent,
             [`${field}Amount`]: amount
         };
-        // Trigger generic update to recalc totals
+
         setFormData({ ...formData, salaryDetails: newDetails });
-        // We need to re-trigger the total calc, simplified here by just calling handleChange logic effectively in next render or via effect if needed. 
-        // For simplicity in this controlled component, we'll manually calc net here too or just let user adjust amount.
-        // Better: Just update the amount field directly via the existing handler pattern if possible, but state update is async.
-        // Let's just update the specific amount field.
-        handleChange(`${field}Amount`, amount);
-        // Also update the percent field in state (we need to add it to handle change logic or just spread it)
-        setFormData(prev => ({
-            ...prev,
-            salaryDetails: { ...prev.salaryDetails, [`${field}Percent`]: percent, [`${field}Amount`]: amount }
-        }));
     };
 
 
@@ -69,6 +167,70 @@ export function SalaryTab({ formData, setFormData }: SalaryTabProps) {
                             <p className="text-sm text-muted-foreground">Detailed breakdown of Earnings & Deductions</p>
                         </div>
                     </div>
+
+                    {/* Rate Selection Dialog */}
+                    <Dialog open={isRateModalOpen} onOpenChange={setIsRateModalOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+                                <Search className="w-4 h-4 mr-2" /> Auto-fill from Rate Card
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-slate-900 border-white/10 text-white max-w-2xl">
+                            <DialogHeader>
+                                <DialogTitle>Select Rate Structure</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 pt-4">
+                                <div>
+                                    <label className="text-sm text-muted-foreground mb-2 block">Select Unit</label>
+                                    <select
+                                        className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none"
+                                        value={selectedUnitId}
+                                        onChange={(e) => handleUnitSelect(e.target.value)}
+                                    >
+                                        <option value="">-- Choose Unit --</option>
+                                        {units.map(u => (
+                                            <option key={u._id} value={u._id}>
+                                                {u.unitCode} - {u.unitName} - {u.clientName}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="max-h-[300px] overflow-y-auto space-y-2">
+                                    {rates.length > 0 ? (
+                                        rates.map((rate: any) => (
+                                            <div
+                                                key={rate._id}
+                                                onClick={() => applyRate(rate)}
+                                                className="p-4 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer border border-white/5 transition-colors flex justify-between items-center group"
+                                            >
+                                                <div>
+                                                    <div className="font-bold text-white group-hover:text-emerald-400 transition-colors">
+                                                        {rate.designation}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground flex gap-2 mt-1">
+                                                        {rate.unitId ? (
+                                                            <span className="bg-emerald-500/10 text-emerald-400 px-1.5 rounded border border-emerald-500/20">Specific to Unit</span>
+                                                        ) : (
+                                                            <span className="bg-blue-500/10 text-blue-400 px-1.5 rounded border border-blue-500/20">Generic / All Units</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-emerald-400 font-mono font-bold">
+                                                        ₹{Object.values(rate.salaryComponents || {}).reduce((a: number, b: any) => a + Number(b), 0)}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">Gross Salary</div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        selectedUnitId && <div className="text-center py-8 text-muted-foreground">No rates found matching this unit configuration.</div>
+                                    )}
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
@@ -92,6 +254,8 @@ export function SalaryTab({ formData, setFormData }: SalaryTabProps) {
                             <InputField label="Leave Allow." value={s.leave} onChange={v => handleChange('leave', v)} />
                             <InputField label="Bonus" value={s.bonus} onChange={v => handleChange('bonus', v)} />
                             <InputField label="Gratuity" value={s.gratuity} onChange={v => handleChange('gratuity', v)} />
+                            <InputField label="National Holidays" value={s.nh} onChange={v => handleChange('nh', v)} />
+                            <InputField label="Relieving Charges" value={s.relievingCharge} onChange={v => handleChange('relievingCharge', v)} />
                         </div>
                         {/* Overtime Section */}
                         <div className="pt-4 mt-4 border-t border-white/10">

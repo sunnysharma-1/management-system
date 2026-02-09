@@ -68,6 +68,7 @@ export function EmployeeLeftModal({ isOpen, onClose, employee, onConfirm }: Empl
                         </div>
                         <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                             <X className="w-5 h-5" />
+                                
                         </button>
                     </div>
 

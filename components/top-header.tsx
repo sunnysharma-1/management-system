@@ -24,7 +24,7 @@ export function TopHeader({ onNavigate, activeItem }: TopHeaderProps) {
     { id: 'generate-invoice', icon: FileText, label: 'Billing' },
     { id: 'salary-process', icon: DollarSign, label: 'Payroll' },
     { id: 'monthly-attendance', icon: Calendar, label: 'Attendance' },
-    { id: 'report-employee', icon: PieChart, label: 'Reports' },
+    { id: 'reports', icon: PieChart, label: 'Reports' },
     { id: 'users', icon: Shield, label: 'Access' },
   ];
 
@@ -50,7 +50,14 @@ export function TopHeader({ onNavigate, activeItem }: TopHeaderProps) {
           return (
             <button
               key={item.id}
-              onClick={() => onNavigate(item.id)}
+              onClick={() => {
+                if (item.id === 'reports') {
+                  // Navigate to separate Reports page
+                  window.location.href = '/reports';
+                  return;
+                }
+                if (onNavigate) onNavigate(item.id);
+              }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 text-sm font-medium
                 ${isActive
                   ? 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_10px_rgba(139,92,246,0.1)]'

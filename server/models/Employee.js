@@ -60,6 +60,8 @@ const EmployeeSchema = new mongoose.Schema({
         leave: { type: Number, default: 0 },
         bonus: { type: Number, default: 0 },
         gratuity: { type: Number, default: 0 },
+        nh: { type: Number, default: 0 }, // National Holidays
+        relievingCharge: { type: Number, default: 0 }, // Relieving Charges
 
         // OT Rates
         otRate: { type: Number, default: 0 },

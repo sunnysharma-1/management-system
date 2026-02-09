@@ -28,6 +28,10 @@ const clientRoutes = require('./routes/clients');
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/rates', require('./routes/rates'));
+app.use('/api/bill-rates', require('./routes/billRates'));
+app.use('/api/advances', require('./routes/advances'));
+app.use('/api/invoices', require('./routes/invoices'));
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

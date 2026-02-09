@@ -92,7 +92,10 @@ const INITIAL_DATA: MasterState = {
     cities: [],
     professionalTaxes: [],
     lwfRules: [],
-    banks: [],
+    banks: [
+        { id: 'bank-1', name: 'HDFC Bank', branch: 'Mumbai Main', ifsc: 'HDFC0001234', accountNo: '50200012345678' },
+        { id: 'bank-2', name: 'ICICI Bank', branch: 'Delhi CP', ifsc: 'ICIC0005678', accountNo: '100100123456' }
+    ],
     paymentModes: [],
 };
 

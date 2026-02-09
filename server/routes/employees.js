@@ -7,7 +7,7 @@ const Employee = require('../models/Employee');
 // @access  Private
 router.get('/', async (req, res) => {
     try {
-        const { query, status, dept } = req.query;
+        const { query, status, dept, page = 1, limit = 12 } = req.query;
         let searchCriteria = {};
 
         // Search by Name, Code, or Phone
@@ -30,8 +30,23 @@ router.get('/', async (req, res) => {
             searchCriteria.department = dept;
         }
 
-        const employees = await Employee.find(searchCriteria).sort({ createdAt: -1 });
-        res.json(employees);
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        const employees = await Employee.find(searchCriteria)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum);
+
+        const total = await Employee.countDocuments(searchCriteria);
+
+        res.json({
+            employees,
+            totalPages: Math.ceil(total / limitNum),
+            currentPage: pageNum,
+            totalEmployees: total
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

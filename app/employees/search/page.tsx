@@ -10,8 +10,6 @@ import { mockEmployees } from '@/lib/mock-data';
 export default function EmployeeSearchPage() {
     const router = useRouter();
     const [query, setQuery] = useState('');
-
-    const [query, setQuery] = useState('');
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -24,7 +22,7 @@ export default function EmployeeSearchPage() {
             setLoading(true);
             try {
                 const data = await import('@/lib/api').then(m => m.api.getEmployees({ query }));
-                setResults(data);
+                setResults(data.employees || []);
             } catch (error) {
                 console.error("Search failed", error);
             } finally {

@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Search, Filter, Mail, Phone, MoreVertical, RefreshCw, UserX, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search, Filter, Mail, Phone, MoreVertical, RefreshCw, UserX, Loader2, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuroraBackground } from '@/components/ui/aurora-background';
 import { api } from '@/lib/api';
 import { EmployeeLeftModal } from './_components/employee-left-modal';
 import { EmployeeRejoinModal } from './_components/employee-rejoin-modal';
+import { AdvanceModal } from '../_components/advance-modal';
 
 export default function EmployeeListPage() {
     const router = useRouter();
@@ -17,42 +18,53 @@ export default function EmployeeListPage() {
     // Data State
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     // Modal States
     const [selectedEmp, setSelectedEmp] = useState<any>(null);
     const [showLeftModal, setShowLeftModal] = useState(false);
     const [showRejoinModal, setShowRejoinModal] = useState(false);
+    const [showAdvanceModal, setShowAdvanceModal] = useState(false);
 
-    const fetchEmployees = async () => {
-        setLoading(true);
+    const fetchEmployees = useCallback(async (isLoadMore = false) => {
+        if (isLoadMore) {
+            setIsLoadingMore(true);
+        } else {
+            setLoading(true);
+        }
+
         try {
-            const data = await api.getEmployees({
+            const currentPage = isLoadMore ? page + 1 : 1;
+            const res = await api.getEmployees({
                 query: search,
-                status: filter === 'All' ? undefined : filter === 'Inactive' ? 'Inactive' : 'Active'
+                status: filter === 'All' ? undefined : filter,
+                page: currentPage,
+                limit: 12
             });
-            // Client-side mapping for Inactive filter (since 'Inactive' might include Terminated/Left)
-            // Or better, handle complex filtering logic in API or here. 
-            // For now, let's assume API returns what we asked for.
 
-            // If fetching 'Inactive', we might want to see all non-active
-            if (filter === 'Inactive') {
-                // The API call above requests 'Inactive', but we might want everything NOT active
-                const allData = await api.getEmployees({ query: search });
-                setEmployees(allData.filter((e: any) => e.status !== 'Active'));
+            if (isLoadMore) {
+                setEmployees(prev => [...prev, ...res.employees]);
+                setPage(currentPage);
             } else {
-                setEmployees(data);
+                setEmployees(res.employees);
+                setPage(1);
             }
+
+            setHasMore(res.currentPage < res.totalPages);
         } catch (error) {
             console.error("Failed to fetch employees", error);
         } finally {
             setLoading(false);
+            setIsLoadingMore(false);
         }
-    };
+    }, [search, filter, page]);
 
-    // Debounce search
+    // Initial fetch and debounce search/filter
     useEffect(() => {
         const timer = setTimeout(() => {
-            fetchEmployees();
+            fetchEmployees(false);
         }, 500);
         return () => clearTimeout(timer);
     }, [search, filter]);
@@ -119,6 +131,12 @@ export default function EmployeeListPage() {
                 employee={selectedEmp}
                 onConfirm={handleRejoinConfirm}
             />
+            <AdvanceModal
+                isOpen={showAdvanceModal}
+                onClose={() => setShowAdvanceModal(false)}
+                employee={selectedEmp}
+                onSuccess={() => alert('Advance recorded successfully!')}
+            />
 
             <div className="h-full overflow-y-auto w-full p-8">
                 <div className="max-w-7xl mx-auto space-y-8">
@@ -167,7 +185,7 @@ export default function EmployeeListPage() {
                             <Loader2 className="w-10 h-10 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative z-10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative z-10 pb-8">
                             <AnimatePresence mode='popLayout'>
                                 {employees.map((emp) => (
                                     <motion.div
@@ -178,17 +196,17 @@ export default function EmployeeListPage() {
                                         layout
                                         className="group bg-card/40 backdrop-blur-md border border-white/10 rounded-3xl p-5 hover:bg-card/60 transition-colors relative overflow-hidden"
                                     >
-                                        <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                        <div className="absolute top-0 right-0 p-4 z-10">
                                             {emp.status === 'Active' ? (
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleLeft(emp); }}
-                                                    className="p-2 hover:bg-red-500/20 rounded-full text-red-400 transition-colors bg-black/20 backdrop-blur-sm"
+                                                    className="p-2 hover:bg-red-500/20 rounded-full text-red-400/70 hover:text-red-400 transition-colors bg-black/20 backdrop-blur-sm"
                                                     title="Mark as Left"
                                                 >
                                                     <UserX className="w-4 h-4" />
                                                 </button>
                                             ) : (
-                                                <button className="p-2 hover:bg-white/10 rounded-full text-white bg-black/20 backdrop-blur-sm">
+                                                <button className="p-2 hover:bg-white/10 rounded-full text-white/70 hover:text-white bg-black/20 backdrop-blur-sm">
                                                     <MoreVertical className="w-4 h-4" />
                                                 </button>
                                             )}
@@ -227,18 +245,40 @@ export default function EmployeeListPage() {
                                                         <RefreshCw className="w-3 h-3" /> Rejoin
                                                     </button>
                                                 ) : (
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); router.push(`/employees/new?code=${emp.employeeId}`); }}
-                                                        className="py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-xs font-medium text-primary transition-colors border border-primary/20"
-                                                    >
-                                                        Edit
-                                                    </button>
+                                                    <>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); router.push(`/employees/new?code=${emp.employeeId}`); }}
+                                                            className="py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-xs font-medium text-primary transition-colors border border-primary/20"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setSelectedEmp(emp); setShowAdvanceModal(true); }}
+                                                            className="py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-medium text-emerald-400 transition-colors border border-emerald-500/20"
+                                                        >
+                                                            Advance
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
+
+                            {/* Load More Trigger */}
+                            {hasMore && (
+                                <div className="col-span-full flex justify-center mt-8">
+                                    <button
+                                        onClick={() => fetchEmployees(true)}
+                                        disabled={isLoadingMore}
+                                        className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-sm font-medium disabled:opacity-50"
+                                    >
+                                        {isLoadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />}
+                                        {isLoadingMore ? 'Loading more...' : 'Load More Employees'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Save, Search, User, Phone, Briefcase, FileText, IndianRupee, RefreshCw, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,16 +10,20 @@ import { ContactTab } from './_components/contact-tab';
 import { ProfessionalTab } from './_components/professional-tab';
 import { DocumentsTab } from './_components/documents-tab';
 import { SalaryTab } from './_components/salary-tab';
+import { EmployeeSearch } from './_components/employee-search';
+import { EmployeeLeftModal } from '../list/_components/employee-left-modal';
 
-export default function NewEmployeePage() {
+
+function NewEmployeeContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const editCode = searchParams.get('code');
 
     const [isLoading, setIsLoading] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('personal');
+
     const [isEditMode, setIsEditMode] = useState(false);
+    const [showLeftModal, setShowLeftModal] = useState(false);
 
     const emptyForm = {
         firstName: '', middleName: '', lastName: '', fatherName: '', motherName: '', email: '',
@@ -68,14 +72,10 @@ export default function NewEmployeePage() {
         loadEmployee();
     }, [editCode]);
 
-    const handleSearch = () => {
-        if (!searchQuery) return;
-        router.push(`/employees/new?code=${searchQuery}`);
-    };
+
 
     const handleReset = () => {
         setFormData(emptyForm);
-        setSearchQuery('');
         setIsEditMode(false);
         router.push('/employees/new'); // Clear URL params
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -101,6 +101,29 @@ export default function NewEmployeePage() {
         }
     };
 
+    const handleLeftConfirm = async (data: any) => {
+        try {
+            await api.updateStatus(formData.employeeId, {
+                status: 'Inactive',
+                exitDetails: {
+                    exitDate: data.leftDate,
+                    reason: data.reason,
+                    remark: data.remark,
+                    clearance: {
+                        idCard: data.idCardSubmitted,
+                        assets: data.assetsSubmitted,
+                        remark: data.idCardRemark
+                    }
+                }
+            });
+            alert(`Employee marked as Left`);
+            router.push('/employees/list');
+        } catch (error) {
+            console.error(error);
+            alert("Failed to update status");
+        }
+    };
+
     const tabs = [
         { id: 'personal', label: 'Personal & Physical', icon: User },
         { id: 'contact', label: 'Contact & Address', icon: Phone },
@@ -123,18 +146,23 @@ export default function NewEmployeePage() {
                     </div>
                 </div>
 
+                <EmployeeLeftModal
+                    isOpen={showLeftModal}
+                    onClose={() => setShowLeftModal(false)}
+                    employee={formData}
+                    onConfirm={handleLeftConfirm}
+                />
+
                 <div className="flex items-center gap-4">
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Find by Code to Edit..."
-                            className="bg-slate-800 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm w-64 focus:ring-2 ring-primary/50 outline-none"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        />
-                        <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-                    </div>
+                    {isEditMode && formData.status === 'Active' && (
+                        <button
+                            onClick={() => setShowLeftModal(true)}
+                            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm font-medium transition-colors border border-red-500/20"
+                        >
+                            Mark as Left
+                        </button>
+                    )}
+                    <EmployeeSearch />
                     <button onClick={handleReset} className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-full transition-colors" title="Reset Form">
                         <RefreshCw className="w-5 h-5" />
                     </button>
@@ -205,5 +233,13 @@ export default function NewEmployeePage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function NewEmployeePage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+            <NewEmployeeContent />
+        </Suspense>
     );
 }

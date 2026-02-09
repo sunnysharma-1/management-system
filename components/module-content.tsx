@@ -12,6 +12,7 @@ import { CompanyKYCForm } from './company-kyc';
 import { FinancialYearManager } from './financial-year';
 import { GenericMaster } from './generic-master';
 import { ClientManager } from './client-manager';
+import ClientsPage from '@/app/clients/page';
 import { InvoiceGenerator } from './invoice-generator';
 import { AttendanceModule } from './attendance-module';
 
@@ -24,7 +25,7 @@ interface ModuleContentProps {
 export function ModuleContent({ activeItem }: ModuleContentProps) {
   if (activeItem === 'employees') return <EmployeesPage />;
   // --- Billing Modules ---
-  if (activeItem === 'client-master') return <ClientManager />;
+  if (activeItem === 'client-master') return <ClientsPage />;
   if (activeItem === 'generate-invoice') return <InvoiceGenerator />;
   if (activeItem === 'recent-entry') return <BillingSection />;
 

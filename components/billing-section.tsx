@@ -1,195 +1,265 @@
 'use client';
 
-import { useState } from 'react';
-import { useBilling } from './providers/billing-context';
-import { FileText, Plus, Download, Send, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 import { InvoiceGenerator } from './invoice-generator';
+import {
+  Search, Loader2, Building2, Edit,
+  FileText, Plus, Calculator, Receipt, User, Calendar
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 export function BillingSection() {
-  const { invoices, clients } = useBilling();
-  const [selectedClient, setSelectedClient] = useState('all');
+  const router = useRouter(); // For navigating to edit pages if needed
+  const [activeTab, setActiveTab] = useState<'invoices' | 'estimations'>('invoices');
   const [showGenerator, setShowGenerator] = useState(false);
 
-  // If user clicks "New Invoice", show generator
-  // In a real router, this would be a page navigation
+  // -- Data States --
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [billRates, setBillRates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const [search, setSearch] = useState('');
+
+  // Fetch Content based on Tab
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        if (activeTab === 'invoices') {
+          const res = await api.getInvoices();
+          setInvoices(res);
+        } else {
+          const res = await api.getBillRates({});
+          setBillRates(res);
+        }
+      } catch (error) {
+        console.error("Error loading billing data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [activeTab, showGenerator]); // Reload when interaction changes
+
   if (showGenerator) {
     return (
-      <div className="relative">
+      <div className="relative animate-fade-in">
         <button
           onClick={() => setShowGenerator(false)}
-          className="absolute top-6 right-6 z-10 text-muted-foreground hover:text-foreground"
+          className="absolute top-6 right-6 z-50 text-slate-500 hover:text-slate-800 font-medium bg-white/50 backdrop-blur px-4 py-2 rounded-full border shadow-sm"
         >
-          Back to Dashboard
+          &larr; Back to Dashboard
         </button>
         <InvoiceGenerator />
       </div>
     );
   }
 
-  const filteredInvoices = selectedClient === 'all'
-    ? invoices
-    : invoices.filter(inv => inv.clientId === selectedClient);
+  // Helper: Filter
+  const filteredInvoices = invoices.filter(inv =>
+    (inv.invoiceNo?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (inv.clientName?.toLowerCase() || '').includes(search.toLowerCase())
+  );
+
+  const filteredRates = billRates.filter(rate =>
+    (rate.service?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (rate.clientId?.companyName?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (rate.unitId?.unitName?.toLowerCase() || '').includes(search.toLowerCase())
+  );
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Paid': return 'bg-accent/10 text-accent';
-      case 'Pending': return 'bg-yellow-100 text-yellow-700';
-      case 'Overdue': return 'bg-destructive/10 text-destructive';
-      default: return 'bg-muted text-foreground';
+    switch (status?.toLowerCase()) {
+      case 'paid': return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+      case 'pending': return 'text-amber-600 bg-amber-50 border-amber-200';
+      case 'overdue': return 'text-red-600 bg-red-50 border-red-200';
+      default: return 'text-slate-600 bg-slate-50 border-slate-200';
     }
   };
 
-  const totalRevenue = invoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
-  const paidAmount = invoices
-    .filter((inv) => inv.status === 'Paid')
-    .reduce((sum, inv) => sum + inv.grandTotal, 0);
-  const pendingAmount = invoices
-    .filter((inv) => inv.status === 'Pending' || inv.status === 'Overdue')
-    .reduce((sum, inv) => sum + inv.grandTotal, 0);
-
   return (
-    <div className="flex-1 overflow-auto animate-fade-in">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary/95 to-primary/80 text-primary-foreground px-8 py-6 border-b border-primary/20">
-        <h1 className="text-3xl font-bold">Billing & Invoicing</h1>
-        <p className="text-primary-foreground/90 mt-2">Manage client invoices and billing records</p>
+    <div className="flex-1 overflow-auto animate-fade-in bg-slate-50/50 min-h-screen">
+      {/* Header with Glassmorphism feel */}
+      <div className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-8 py-8 shadow-lg relative overflow-hidden">
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px]" />
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight">Billing Hub</h1>
+            <p className="text-indigo-100 mt-1 opacity-80">Central command for Invoices & Quotations</p>
+          </div>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="p-8 max-w-7xl">
-        {/* Revenue Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <SummaryBox
-            title="Total Revenue"
-            amount={`₹${totalRevenue.toLocaleString()}`}
-            color="primary"
-          />
-          <SummaryBox
-            title="Paid Invoices"
-            amount={`₹${paidAmount.toLocaleString()}`}
-            color="accent"
-          />
-          <SummaryBox
-            title="Pending/Overdue"
-            amount={`₹${pendingAmount.toLocaleString()}`}
-            color="yellow"
-          />
+      <div className="p-8 max-w-7xl mx-auto -mt-8 relative z-20">
+        {/* Navigation Tabs (Glassy) */}
+        <div className="flex items-center gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('invoices')}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all shadow-sm ${activeTab === 'invoices'
+                ? 'bg-white text-indigo-600 shadow-md font-bold ring-1 ring-indigo-100'
+                : 'bg-white/40 text-slate-600 hover:bg-white hover:text-indigo-600'
+              }`}
+          >
+            <Receipt className="w-5 h-5" />
+            Invoices
+          </button>
+          <button
+            onClick={() => setActiveTab('estimations')}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all shadow-sm ${activeTab === 'estimations'
+                ? 'bg-white text-emerald-600 shadow-md font-bold ring-1 ring-emerald-100'
+                : 'bg-white/40 text-slate-600 hover:bg-white hover:text-emerald-600'
+              }`}
+          >
+            <Calculator className="w-5 h-5" />
+            Estimations / Rates
+          </button>
         </div>
 
-        {/* Action Bar */}
-        <div className="bg-card rounded-lg border border-border p-6 mb-6 shadow-sm">
-          <div className="flex flex-col md:flex-row gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-foreground mb-2">Filter by Client</label>
-              <select
-                value={selectedClient}
-                onChange={(e) => setSelectedClient(e.target.value)}
-                className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        {/* Sub-Header / Controls */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="relative w-full md:w-96">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder={activeTab === 'invoices' ? "Search Invoice # or Client..." : "Search Service or Unit..."}
+              className="bg-slate-50 border border-slate-200 outline-none rounded-xl text-sm pl-9 pr-4 py-2 w-full focus:ring-2 focus:ring-indigo-100 transition-all"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <div>
+            {activeTab === 'invoices' ? (
+              <button
+                onClick={() => setShowGenerator(true)}
+                className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium shadow-lg shadow-indigo-500/20 transition-all"
               >
-                <option value="all">All Clients</option>
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Export
-            </button>
-            <button
-              onClick={() => setShowGenerator(true)}
-              className="bg-accent hover:bg-accent/90 text-accent-foreground px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              New Invoice
-            </button>
+                <Plus className="w-4 h-4" /> New Invoice
+              </button>
+            ) : (
+              <button
+                onClick={() => window.location.href = '/clients/rates/select'}
+                className="flex items-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-lg shadow-emerald-500/20 transition-all"
+              >
+                <Plus className="w-4 h-4" /> New Estimation
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Invoices Table */}
-        <div className="bg-card rounded-lg border border-border overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-border flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-bold text-foreground">Recent Invoices</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-muted border-b border-border">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Invoice ID</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Client</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Date</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Due Date</th>
-                  <th className="px-6 py-3 text-right text-sm font-semibold text-foreground">Amount</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Status</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInvoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-8 text-muted-foreground">No invoices found.</td>
-                  </tr>
-                ) : (
-                  filteredInvoices.map((invoice, index) => (
-                    <tr
-                      key={invoice.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="px-6 py-4 text-sm text-primary font-bold">{invoice.invoiceNo}</td>
-                      <td className="px-6 py-4 text-sm text-foreground">{invoice.clientName}</td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">{invoice.date}</td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">{invoice.dueDate}</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-foreground text-right">
-                        ₹{invoice.grandTotal.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(invoice.status)}`}>
-                          {invoice.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm space-x-2">
-                        <button className="text-primary hover:bg-primary/10 px-2 py-1 rounded transition-colors inline-block" title="View details">
-                          <Eye className="w-4 h-4 inline" />
+        {/* CONTENT AREA */}
+        {loading ? (
+          <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-indigo-400" /></div>
+        ) : (
+          <div className="min-h-[400px]">
+            <AnimatePresence mode="wait">
+              {/* --- INVOICES VIEW --- */}
+              {activeTab === 'invoices' && (
+                <motion.div
+                  key="invoices"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-4"
+                >
+                  {filteredInvoices.length > 0 ? filteredInvoices.map((inv) => (
+                    <div key={inv._id} className="bg-white border border-slate-100 rounded-2xl p-5 hover:shadow-md transition-all group flex flex-col md:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-5">
+                        <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-500 group-hover:bg-indigo-100 transition-colors">
+                          <FileText className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-800">{inv.invoiceNo}</h3>
+                          <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                            <span className="flex items-center gap-1"><User className="w-3 h-3" /> {inv.clientName || 'Unknown'}</span>
+                            <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(inv.date).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end">
+                        <div className="text-right">
+                          <div className="text-xl font-bold text-slate-800 font-mono">₹{inv.grandTotal?.toLocaleString()}</div>
+                          <div className={`text-xs px-2.5 py-0.5 rounded-full border inline-block mt-1 font-semibold uppercase tracking-wide ${getStatusColor(inv.status)}`}>
+                            {inv.status}
+                          </div>
+                        </div>
+                        <button className="p-2 hover:bg-slate-50 rounded-lg text-indigo-600 transition-colors">
+                          <Edit className="w-5 h-5" />
                         </button>
-                        <button className="text-primary hover:bg-primary/10 px-2 py-1 rounded transition-colors inline-block" title="Download PDF">
-                          <Download className="w-4 h-4 inline" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                      <FileText className="w-16 h-16 mx-auto mb-4 text-slate-200" />
+                      <p className="text-slate-500">No invoices found.</p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
 
-        {/* Billing Notes */}
-        <div className="mt-6 p-6 bg-primary/5 border border-primary/20 rounded-lg">
-          <h3 className="font-semibold text-foreground mb-2">💡 Billing Tips</h3>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Regular invoicing ensures timely payments and maintains cash flow</li>
-            <li>• Track overdue invoices and follow up with clients</li>
-            <li>• Generate detailed billing reports for accounting and tax purposes</li>
-            <li>• Maintain accurate client information for better billing</li>
-          </ul>
-        </div>
+              {/* --- ESTIMATIONS VIEW --- */}
+              {activeTab === 'estimations' && (
+                <motion.div
+                  key="estimations"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
+                  {filteredRates.length > 0 ? filteredRates.map((rate) => (
+                    <div key={rate._id} className="bg-white border border-slate-100 rounded-3xl p-6 hover:shadow-xl transition-all group relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Calculator className="w-24 h-24 text-emerald-500" />
+                      </div>
+
+                      <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <span className="px-2 py-1 rounded bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider mb-2 inline-block border border-blue-100">
+                              {rate.clientId?.companyName || 'Unknown Client'}
+                            </span>
+                            <h3 className="text-lg font-bold text-slate-800 leading-tight pr-4">{rate.service}</h3>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 mb-6 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                          <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                            <Building2 className="w-4 h-4 text-slate-400" />
+                            <span className="truncate">{rate.unitId?.unitName}</span>
+                          </div>
+                          <div className="flex justify-between text-sm pt-2 border-t border-slate-200/50">
+                            <span className="text-slate-500">Rate/Head</span>
+                            <span className="text-emerald-600 font-bold font-mono">₹{rate.totals?.totalPerHead?.toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Total Estimate</p>
+                            <p className="text-xl font-bold text-slate-800">₹{rate.totals?.grandTotal?.toLocaleString()}</p>
+                          </div>
+                          <button
+                            onClick={() => window.location.href = `/clients/${rate.clientId?._id || rate.clientId}/bill-rates/${rate._id}/edit`}
+                            className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200"
+                          >
+                            Edit / View
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="col-span-full text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                      <Calculator className="w-16 h-16 mx-auto mb-4 text-slate-200" />
+                      <p className="text-slate-500">No estimations found.</p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
-
-function SummaryBox({ title, amount, color }: { title: string; amount: string; color: string }) {
-  const colorClasses = {
-    primary: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
-    accent: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-    yellow: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400',
-  };
-
-  return (
-    <div className={`${colorClasses[color as keyof typeof colorClasses]} rounded-lg border p-6 shadow-sm`}>
-      <p className="text-sm opacity-80 mb-2">{title}</p>
-      <p className="text-3xl font-bold">{amount}</p>
     </div>
   );
 }

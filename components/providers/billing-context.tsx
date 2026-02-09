@@ -13,28 +13,92 @@ export interface Client {
 }
 
 export interface InvoiceItem {
-    id: string;
+    id: string; // items: [{ seqNo, ... }] in backend, but frontend needs unique ID for list
+    seqNo: number;
+    service: string;
     description: string;
-    hsn: string;
-    quantity: number;
+    nop: number;
     rate: number;
-    taxRate: number; // e.g. 18
+    monthDays: number;
+    duty: number;
     amount: number;
+
+    // Components
+    scPercent: number;
+    scAmount: number;
+    pfPercent: number;
+    pfAmount: number;
+    esicPercent: number;
+    esicAmount: number;
+    lwfRate: number;
+    lwfAmount: number;
+    leviRate: number;
+    leviAmount: number;
 }
 
 export interface Invoice {
-    id: string;
+    id?: string;
+    _id?: string;
     invoiceNo: string;
-    date: string;
-    dueDate: string;
+    date: string; // Bill Date
+
+    // Period
+    fromPeriod?: string;
+    toPeriod?: string;
+    month?: string;
+    year?: string | number;
+    monthDays?: number;
+
     clientId: string;
-    clientName: string; // denormalized for easier display
+    unitId?: string;
+    clientName: string;
+    unitName?: string;
+
+    bank?: {
+        id: string;
+        name: string;
+        branch: string;
+        ifsc: string;
+        accountNo: string;
+    };
+
     items: InvoiceItem[];
+
+    // Footer
+    totalDuty: number;
+    serviceChargePercent: number;
+    serviceChargeAmount: number;
+    pfEmployerPercent: number;
+    pfEmployerAmount: number;
+    esicEmployerPercent: number;
+    esicEmployerAmount: number;
+    lwfTotal: number;
+    leviTotal: number;
+
     subTotal: number;
+
+    cgstPercent: number;
+    cgstAmount: number;
+    sgstPercent: number;
+    sgstAmount: number;
+    igstPercent: number;
+    igstAmount: number;
+
     taxTotal: number;
+    others: number;
     grandTotal: number;
-    status: 'Draft' | 'Pending' | 'Paid' | 'Overdue';
-    notes?: string;
+
+    tdsPercent: number;
+    tdsAmount: number;
+    reimbursement: number;
+    netAmount: number;
+
+    status: 'Draft' | 'Pending' | 'Paid' | 'Overdue' | 'Cancelled';
+    remarks: string;
+    isServiceChargeOnPrint: boolean;
+    isReverseCharges: boolean;
+    isArrearBill: boolean;
+    docketNumber: string;
 }
 
 interface BillingContextType {

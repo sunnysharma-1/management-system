@@ -1,6 +1,9 @@
 'use client';
 
-import { User, Ruler } from 'lucide-react';
+import { User, Ruler, Loader2, Download, Search } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface PersonalTabProps {
     formData: any;
@@ -8,12 +11,100 @@ interface PersonalTabProps {
 }
 
 export function PersonalTab({ formData, setFormData }: PersonalTabProps) {
+    const { toast } = useToast();
+    const [fetchingAadhar, setFetchingAadhar] = useState(false);
+
     const handleChange = (field: string, value: any) => {
         setFormData({ ...formData, [field]: value });
     };
 
+    const handleFetchAadhar = async () => {
+        if (!formData.aadharNo || formData.aadharNo.length < 12) {
+            toast({
+                title: "Invalid Aadhar Number",
+                description: "Please enter a valid 12-digit Aadhar number.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setFetchingAadhar(true);
+
+        // Simulate API call
+        setTimeout(() => {
+            setFetchingAadhar(false);
+
+            // Mock Data
+            const mockData = {
+                firstName: "Rahul",
+                lastName: "Verma",
+                gender: "Male",
+                dob: "1995-08-15",
+                fatherName: "Suresh Verma",
+                presentAddress: "Flat 402, Sunshine Apartments, Sector 62",
+                presentState: "Uttar Pradesh",
+                presentDistrict: "Noida",
+                presentPin: "201309",
+                permanentAddress: "House No. 12, Civil Lines",
+                permanentState: "Uttar Pradesh",
+                permanentDistrict: "Lucknow",
+                permanentPin: "226001",
+                height: "175",
+                weight: "72",
+                bloodGroup: "B+",
+                identificationMark: "Mole on right cheek",
+                shirtSize: "L",
+                trouserSize: "32",
+                shoeSize: "9",
+            };
+
+            setFormData({
+                ...formData,
+                ...mockData,
+                sameAsPresent: false
+            });
+
+            toast({
+                title: "Details Fetched Successfully",
+                description: `Auto-filled details for ${mockData.firstName} ${mockData.lastName}.`,
+            });
+
+        }, 1500);
+    };
+
     return (
         <div className="space-y-6">
+            {/* Quick Fill Section */}
+            <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-2xl p-6">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-500/20 rounded-xl">
+                        <Search className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-blue-100">Quick Fill with Aadhar</h3>
+                        <p className="text-sm text-blue-300/70">Enter Aadhar number to auto-populate Personal & Physical details.</p>
+                    </div>
+                </div>
+                <div className="mt-4 flex gap-3 max-w-md">
+                    <input
+                        type="text"
+                        className="flex-1 bg-background/50 border border-white/10 rounded-lg px-4 py-2 font-mono placeholder:text-muted-foreground focus:ring-2 ring-blue-500/50 outline-none"
+                        value={formData.aadharNo || ''}
+                        onChange={e => handleChange('aadharNo', e.target.value)}
+                        placeholder="Enter 12-digit Aadhar (e.g. 123456789012)"
+                        maxLength={14}
+                    />
+                    <Button
+                        onClick={handleFetchAadhar}
+                        disabled={fetchingAadhar || !formData.aadharNo}
+                        className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        {fetchingAadhar ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
+                        {fetchingAadhar ? 'Fetching...' : 'Auto-fill'}
+                    </Button>
+                </div>
+            </div>
+
             {/* Basic Details */}
             <div className="bg-card/40 backdrop-blur border border-white/10 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-6">

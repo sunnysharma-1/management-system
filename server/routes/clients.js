@@ -2,67 +2,77 @@ const express = require('express');
 const router = express.Router();
 const Client = require('../models/Client');
 
-// @route   GET /api/clients
-// @desc    Get all clients
-// @access  Private
+// GET all clients
 router.get('/', async (req, res) => {
     try {
         const clients = await Client.find().sort({ createdAt: -1 });
         res.json(clients);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ message: err.message });
     }
 });
 
-// @route   POST /api/clients
-// @desc    Add new client
-// @access  Private
+// GET single client
+router.get('/:id', async (req, res) => {
+    try {
+        const client = await Client.findById(req.params.id);
+        if (!client) return res.status(404).json({ message: 'Client not found' });
+        res.json(client);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// CREATE a client
 router.post('/', async (req, res) => {
+    const client = new Client(req.body);
     try {
-        const newClient = new Client(req.body);
-        const client = await newClient.save();
-        res.json(client);
+        const newClient = await client.save();
+        res.status(201).json(newClient);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(400).json({ message: err.message });
     }
 });
 
-// @route   PUT /api/clients/:id
-// @desc    Update client
-// @access  Private
-router.put('/:id', async (req, res) => {
+// UPDATE a client
+router.patch('/:id', async (req, res) => {
     try {
-        let client = await Client.findById(req.params.id);
-        if (!client) return res.status(404).json({ msg: 'Client not found' });
-
-        client = await Client.findByIdAndUpdate(
-            req.params.id,
-            { $set: req.body },
-            { new: true }
-        );
-
+        const client = await Client.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!client) return res.status(404).json({ message: 'Client not found' });
         res.json(client);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(400).json({ message: err.message });
     }
 });
 
-// @route   DELETE /api/clients/:id
-// @desc    Delete client
-// @access  Private
-router.delete('/:id', async (req, res) => {
+// ADD a Unit to a Client
+router.post('/:id/units', async (req, res) => {
     try {
-        let client = await Client.findById(req.params.id);
-        if (!client) return res.status(404).json({ msg: 'Client not found' });
+        const client = await Client.findById(req.params.id);
+        if (!client) return res.status(404).json({ message: 'Client not found' });
 
-        await Client.findByIdAndRemove(req.params.id);
-        res.json({ msg: 'Client removed' });
+        client.units.push(req.body);
+        const updatedClient = await client.save();
+        res.status(201).json(updatedClient);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// UPDATE a Unit
+router.patch('/:id/units/:unitId', async (req, res) => {
+    try {
+        const client = await Client.findById(req.params.id);
+        if (!client) return res.status(404).json({ message: 'Client not found' });
+
+        const unit = client.units.id(req.params.unitId);
+        if (!unit) return res.status(404).json({ message: 'Unit not found' });
+
+        Object.assign(unit, req.body);
+        const updatedClient = await client.save();
+        res.json(updatedClient);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
     }
 });
 

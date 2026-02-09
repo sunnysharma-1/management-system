@@ -21,7 +21,7 @@ export const AuroraBackground = ({ children, className = '' }: AuroraBackgroundP
                         repeat: Infinity,
                         ease: "linear",
                     }}
-                    className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0_340deg,white_360deg)] opacity-10 blur-3xl"
+                    className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0_340deg,white_360deg)] opacity-10 blur-3xl will-change-transform"
                 />
                 <motion.div
                     animate={{
@@ -32,9 +32,9 @@ export const AuroraBackground = ({ children, className = '' }: AuroraBackgroundP
                     transition={{
                         duration: 20,
                         repeat: Infinity,
-                        ease: "easeInOut",
+                        ease: "linear",
                     }}
-                    className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px] mix-blend-screen"
+                    className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px] mix-blend-screen will-change-transform"
                 />
                 <motion.div
                     animate={{
@@ -45,9 +45,9 @@ export const AuroraBackground = ({ children, className = '' }: AuroraBackgroundP
                     transition={{
                         duration: 25,
                         repeat: Infinity,
-                        ease: "easeInOut",
+                        ease: "linear",
                     }}
-                    className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[120px] mix-blend-screen"
+                    className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[120px] mix-blend-screen will-change-transform"
                 />
                 <motion.div
                     animate={{
@@ -58,9 +58,9 @@ export const AuroraBackground = ({ children, className = '' }: AuroraBackgroundP
                     transition={{
                         duration: 30,
                         repeat: Infinity,
-                        ease: "easeInOut",
+                        ease: "linear",
                     }}
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/10 rounded-full blur-[130px] mix-blend-screen"
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/10 rounded-full blur-[130px] mix-blend-screen will-change-transform"
                 />
             </div>
             <div className="relative z-10 w-full h-full">{children}</div>
