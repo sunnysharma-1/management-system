@@ -1,43 +1,34 @@
 const mongoose = require('mongoose');
 
 const InvoiceSchema = new mongoose.Schema({
-    invoiceNo: { type: String, required: true, unique: true },
-    date: { type: Date, required: true }, // Bill Date
+    billNo: { type: String, required: true, unique: true },
+    billDate: { type: Date, required: true },
+
+    // Client & Unit Details (Snapshot)
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
+    clientName: String, // Snapshot
+    unitId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client.units' },
+    unitName: String, // Snapshot
 
     // Period Details
-    fromPeriod: Date,
-    toPeriod: Date,
-    month: String,
-    year: Number,
+    month: { type: String, required: true }, // e.g. "February"
+    year: { type: Number, required: true }, // e.g. 2026
+    billPeriodFrom: Date,
+    billPeriodTo: Date,
     monthDays: Number,
-
-    // Client & Unit
-    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
-    unitId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client.units' },
-    clientName: String,
-    unitName: String,
-
-    // Bank Details
-    bank: {
-        id: String,
-        name: String,
-        branch: String,
-        ifsc: String,
-        accountNo: String
-    },
 
     // Line Items
     items: [{
-        seqNo: Number,
-        service: String,
+        serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' }, // Optional reference if you have partial services
+        service: { type: String, required: true },
         description: String,
-        nop: Number, // No of Person
-        rate: Number,
-        monthDays: Number, // working days for calculation? or just for display
-        duty: Number, // Duty days
-        amount: Number, // Basic Amount
+        nop: { type: Number, default: 0 }, // No of Persons
+        duty: { type: Number, default: 0 },
+        rate: { type: Number, required: true },
+        days: { type: Number, default: 0 },
+        amount: { type: Number, required: true },
 
-        // Specific Components per Item
+        // Statutory Components per Item
         scPercent: { type: Number, default: 0 },
         scAmount: { type: Number, default: 0 },
 
@@ -50,64 +41,68 @@ const InvoiceSchema = new mongoose.Schema({
         lwfRate: { type: Number, default: 0 },
         lwfAmount: { type: Number, default: 0 },
 
-        // Calculations basis (Basic/Gross/OnAmount) - storing the result logic if needed, 
-        // but mostly we just store the resulting amounts.
-        // The UI shows "PF(Basic)(Gross)(OnAmount)" etc, which implies configuration, but for the Invoice record we likely just need the final values.
-
         leviRate: { type: Number, default: 0 },
         leviAmount: { type: Number, default: 0 },
     }],
 
-    // Footer Totals
-    totalDuty: Number,
+    // Financial Totals
+    totalDuty: { type: Number, default: 0 },
 
-    // Charges & Taxes Summary
-    serviceChargePercent: Number,
-    serviceChargeAmount: Number,
+    // Summary of Statutory Amounts (Sum of items)
+    serviceChargePercent: { type: Number, default: 0 }, // If global
+    serviceChargeAmount: { type: Number, default: 0 },
 
-    pfEmployerPercent: Number,
-    pfEmployerAmount: Number,
+    pfEmployerPercent: { type: Number, default: 0 },
+    pfEmployerAmount: { type: Number, default: 0 },
 
-    esicEmployerPercent: Number,
-    esicEmployerAmount: Number,
+    esicEmployerPercent: { type: Number, default: 0 },
+    esicEmployerAmount: { type: Number, default: 0 },
 
-    lwfTotal: Number,
-    leviTotal: Number,
+    lwfTotal: { type: Number, default: 0 },
+    leviTotal: { type: Number, default: 0 },
 
-    subTotal: { type: Number, required: true }, // Sum of (Item Amounts + SC + Employer Contribs etc) - depends on logic
+    subTotal: { type: Number, required: true }, // Sum up to this point
 
-    // GST
-    cgstPercent: Number,
-    cgstAmount: Number,
-    sgstPercent: Number,
-    sgstAmount: Number,
-    igstPercent: Number,
-    igstAmount: Number,
+    // Taxes
+    cgstPercent: { type: Number, default: 0 },
+    cgstAmount: { type: Number, default: 0 },
+    sgstPercent: { type: Number, default: 0 },
+    sgstAmount: { type: Number, default: 0 },
+    igstPercent: { type: Number, default: 0 },
+    igstAmount: { type: Number, default: 0 },
 
-    taxTotal: { type: Number, required: true },
+    taxAmount: { type: Number, default: 0 }, // Total Tax
 
-    others: Number,
+    others: { type: Number, default: 0 },
 
-    grandTotal: { type: Number, required: true }, // Total (Tax + Sub)
+    grandTotal: { type: Number, required: true }, // SubTotal + Tax + Others
 
-    tdsPercent: Number,
-    tdsAmount: Number,
+    tdsPercent: { type: Number, default: 0 },
+    tdsAmount: { type: Number, default: 0 },
 
-    reimbursement: Number,
+    // Meta / Footer Inputs
+    remarks: String,
+    bank: {
+        id: mongoose.Schema.Types.ObjectId,
+        name: String,
+        branch: String,
+        ifsc: String,
+        accountNo: String
+    },
 
-    netAmount: Number, // Final Payable
+    // Flags
+    isServiceChargeOnPrint: { type: Boolean, default: true },
+    isReverseCharges: { type: Boolean, default: false },
+    isArrearBill: { type: Boolean, default: false },
+    docketNumber: String,
 
-    // Flags & Meta
     status: {
         type: String,
         enum: ['Draft', 'Pending', 'Paid', 'Overdue', 'Cancelled'],
-        default: 'Pending'
+        default: 'Draft'
     },
-    remarks: String,
-    isServiceChargeOnPrint: Boolean,
-    isReverseCharges: Boolean,
-    isArrearBill: Boolean,
-    docketNumber: String
+
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
 }, { timestamps: true });
 
